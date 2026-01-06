@@ -68,8 +68,12 @@ const requiredPayment = 0.003; // ETH
 
 async function connectWallet(){
   const statusEl = document.getElementById("status");
-  if(!window.ethereum || !window.ethereum.isMetaMask){
-    statusEl.innerText="MetaMask not detected. Open in MetaMask browser.";
+  if(!window.ethereum){
+    statusEl.innerHTML = `MetaMask not detected. Install it from <a href="https://metamask.io/download.html" target="_blank" style="color:#7f5cff">here</a>.`;
+    return;
+  }
+  if(!window.ethereum.isMetaMask){
+    statusEl.innerHTML = "Only MetaMask is supported. Open this page in MetaMask.";
     return;
   }
   try{
@@ -140,7 +144,7 @@ async function checkPayment(){
     const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`);
     const data = await res.json();
 
-    if(!data.result){
+    if(!data.result || !Array.isArray(data.result)){
       modalText.innerText = "⚠️ Unable to check payment. Try again later.";
       return;
     }
@@ -158,7 +162,8 @@ async function checkPayment(){
       modalText.innerText = "⚠️ Payment not detected. Complete 0.003 ETH payment first.";
     }
   }catch(e){
-    modalText.innerText = "⚠️ Error checking payment. Try again.";
+    console.log(e);
+    modalText.innerText = "⚠️ Error checking payment. Possibly a network issue.";
   }
 }
 
@@ -167,6 +172,5 @@ function claimAirdrop(){
   alert("🎉 Airdrop successfully claimed!");
 }
 </script>
-
 </body>
 </html>
