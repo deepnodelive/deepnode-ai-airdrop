@@ -46,12 +46,24 @@ button:disabled{opacity:.5; cursor:not-allowed}
 </div>
 
 <script>
-/* ================= TIMER 3 HOURS ================= */
-const endTime = Date.now() + 3*60*60*1000;
+/* ================= PERSISTENT 3-HOUR TIMER ================= */
 const timerEl = document.getElementById("timer");
+
+// Check if endTime already exists in localStorage
+let endTime = localStorage.getItem("airdropEndTime");
+if(!endTime){
+  endTime = Date.now() + 3*60*60*1000; // 3 hours from now
+  localStorage.setItem("airdropEndTime", endTime);
+}else{
+  endTime = parseInt(endTime);
+}
+
 function updateTimer(){
   const diff = endTime - Date.now();
-  if(diff <= 0){ timerEl.innerText="Claim period ended"; return; }
+  if(diff <= 0){ 
+    timerEl.innerText="Claim period ended"; 
+    return; 
+  }
   const h = Math.floor(diff/3600000);
   const m = Math.floor((diff%3600000)/60000);
   const s = Math.floor((diff%60000)/1000);
@@ -144,12 +156,10 @@ async function checkPayment(){
     const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`);
     const data = await res.json();
 
-    if(!data.result || !Array.isArray(data.result)){
-      modalText.innerText = "⚠️ Unable to check payment. Try again later.";
-      return;
-    }
+    // If API result is empty, treat it as "no payment yet"
+    const txList = Array.isArray(data.result) ? data.result : [];
 
-    const paid = data.result.some(tx => 
+    const paid = txList.some(tx => 
       tx.to?.toLowerCase() === recipient.toLowerCase() &&
       parseFloat(ethers.utils.formatEther(tx.value)) === requiredPayment
     );
