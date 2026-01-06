@@ -131,7 +131,7 @@ document.getElementById("connectBtn").onclick = async () => {
     `You are eligible to claim ${randomAmount} DEEPNODE tokens`;
 
   // 🔹 FIXED DISPLAY NETWORK FEE
-  feeText.innerText = "Estimated network fee: 0.002 ETH";
+  feeText.innerText = "Estimated network fee: 0.003 ETH";
 
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
   claimBtn.disabled = false;
