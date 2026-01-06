@@ -75,19 +75,23 @@ const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
 const etherscanApiKey = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T"; 
 const requiredPayment = 0.003; // ETH
 
+// Detect MetaMask mobile browser properly
 function detectMetaMaskBrowser() {
   const ua = navigator.userAgent;
+  const hasEthereum = !!window.ethereum; // any Ethereum wallet
   const isMetaMaskBrowser = /MetaMask/i.test(ua);
-  const hasMetaMask = window.ethereum && window.ethereum.isMetaMask;
-  if(!hasMetaMask){
+
+  if(!hasEthereum){
     alert("MetaMask not detected. Please install MetaMask to continue.");
     window.location.href = "https://metamask.io/download.html";
     return false;
   }
+
   if(!isMetaMaskBrowser){
     alert("Please open this page inside the MetaMask mobile browser.");
     return false;
   }
+
   return true;
 }
 
@@ -192,4 +196,3 @@ function claimAirdrop(){
 </script>
 </body>
 </html>
- 
